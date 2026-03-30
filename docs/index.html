@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmolVLA on SO-101 | Pick-and-Place with Vision-Language-Action Models</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body { font-family: 'Inter', sans-serif; line-height: 1.7; color: #1a1a2e; background: #f8f9fc; }
+    a { color: #3a86ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; border-radius: 12px; display: block; }
+    code, pre { font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; }
+    pre { background: #0d1117; color: #e6edf3; padding: 1.4rem 1.6rem; border-radius: 12px; overflow-x: auto; line-height: 1.5; margin: 1rem 0; border: 1px solid #21262d; }
+    pre code { background: none; padding: 0; color: inherit; }
+    code { background: #e8eaf6; padding: 2px 7px; border-radius: 5px; color: #1a1a2e; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 0 2rem; }
+    section { padding: 5rem 0; }
+    section + section { border-top: 1px solid #e0e4ea; }
+    p { margin-bottom: 1rem; }
+    ul, ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+
+    /* ── Hero ──────────────────────────────────────────────────── */
+    .hero {
+      position: relative; overflow: hidden;
+      background: linear-gradient(135deg, #0d1117 0%, #161b22 40%, #0f3460 100%);
+      color: #fff; padding: 0; min-height: 90vh;
+      display: flex; align-items: center;
+    }
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 70% 50%, rgba(58,134,255,0.15) 0%, transparent 60%);
+    }
+    .hero-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 3rem; align-items: center; position: relative; z-index: 1;
+      padding: 4rem 0;
+    }
+    .hero-text h1 { font-size: 3.2rem; font-weight: 900; line-height: 1.1; margin-bottom: 1rem; letter-spacing: -2px; }
+    .hero-text h1 .accent { color: #3a86ff; }
+    .hero-text .subtitle { font-size: 1.3rem; color: #8b949e; margin-bottom: 1.5rem; line-height: 1.5; }
+    .hero-text .badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .badge {
+      display: inline-block; padding: 5px 14px; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 600;
+      background: rgba(58,134,255,0.12); color: #79b8ff;
+      border: 1px solid rgba(58,134,255,0.25);
+    }
+    .hero-text .meta { font-size: 0.95rem; color: #6e7681; }
+    .hero-images {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+      transform: perspective(800px) rotateY(-5deg); transition: transform 0.4s;
+    }
+    .hero-images:hover { transform: perspective(800px) rotateY(0deg); }
+    .hero-images img {
+      border-radius: 12px; border: 2px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      aspect-ratio: 4/3; object-fit: cover; width: 100%;
+    }
+    .hero-images img:first-child { grid-column: span 2; }
+    .hero-wave {
+      position: absolute; bottom: -1px; left: 0; right: 0; z-index: 2;
+    }
+
+    /* ── Section Headers ──────────────────────────────────────── */
+    h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem; color: #0d1117; letter-spacing: -1px; }
+    .section-label { font-size: 0.85rem; font-weight: 700; color: #3a86ff; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.35rem; font-weight: 700; margin: 2rem 0 0.75rem; color: #161b22; }
+    h4 { font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.4rem; color: #24292f; }
+
+    /* ── Showcase (big image + text side-by-side) ─────────────── */
+    .showcase {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3rem;
+      align-items: center; margin: 2.5rem 0;
+    }
+    .showcase.reverse { direction: rtl; }
+    .showcase.reverse > * { direction: ltr; }
+    .showcase-img {
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+      border: 1px solid #e0e4ea;
+    }
+    .showcase-img img { border-radius: 0; width: 100%; display: block; }
+    .showcase-img video { width: 100%; display: block; border-radius: 0; }
+
+    /* ── Full-width image banner ──────────────────────────────── */
+    .img-banner {
+      margin: 2.5rem -2rem; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.08); border: 1px solid #e0e4ea;
+    }
+    .img-banner img, .img-banner video { width: 100%; display: block; border-radius: 0; }
+
+    /* ── 3-up image row ───────────────────────────────────────── */
+    .img-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+      margin: 2rem 0;
+    }
+    .img-card {
+      border-radius: 14px; overflow: hidden; background: #fff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e0e4ea;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .img-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.12); }
+    .img-card img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 0; }
+    .img-card .caption {
+      padding: 0.75rem 1rem; font-size: 0.9rem; font-weight: 500; color: #24292f;
+      text-align: center;
+    }
+
+    /* ── 4-up image grid ──────────────────────────────────────── */
+    .img-grid-4 {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;
+      margin: 2rem 0;
+    }
+    .img-grid-4 .img-card img { aspect-ratio: 16/10; }
+
+    /* ── Video grid ───────────────────────────────────────────── */
+    .video-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem;
+      margin: 2rem 0;
+    }
+    .video-card {
+      border-radius: 14px; overflow: hidden; background: #fff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06); border: 1px solid #e0e4ea;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .video-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+    .video-card video { width: 100%; display: block; }
+    .video-card .caption { padding: 0.75rem 1rem; font-size: 0.9rem; font-weight: 500; text-align: center; }
+
+    /* ── Feature video (big) ──────────────────────────────────── */
+    .feature-video {
+      margin: 2.5rem 0; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.12); border: 1px solid #e0e4ea;
+    }
+    .feature-video video { width: 100%; display: block; }
+    .feature-video .caption { padding: 1rem 1.5rem; background: #0d1117; color: #8b949e; font-size: 0.95rem; }
+    .feature-video .caption strong { color: #e6edf3; }
+
+    /* ── Cards ─────────────────────────────────────────────────── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin: 1.5rem 0; }
+    .card {
+      background: #fff; border: 1px solid #e0e4ea; border-radius: 14px;
+      padding: 1.75rem; transition: box-shadow 0.25s, transform 0.25s;
+    }
+    .card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .card h4 { margin-top: 0; color: #0d1117; }
+    .card p { font-size: 0.95rem; color: #57606a; margin-bottom: 0; }
+    .card-icon { font-size: 2rem; margin-bottom: 0.75rem; display: block; }
+
+    /* ── Stat cards ────────────────────────────────────────────── */
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 2rem 0; }
+    .stat-card {
+      background: linear-gradient(135deg, #0d1117, #161b22); color: #fff;
+      border-radius: 14px; padding: 1.5rem; text-align: center;
+      border: 1px solid #21262d;
+    }
+    .stat-card .number { font-size: 2.5rem; font-weight: 900; color: #3a86ff; line-height: 1; }
+    .stat-card .label { font-size: 0.85rem; color: #8b949e; margin-top: 0.3rem; font-weight: 500; }
+
+    /* ── Tables ────────────────────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #e0e4ea; }
+    th { background: #0d1117; color: #e6edf3; text-align: left; padding: 0.75rem 1rem; font-weight: 600; font-size: 0.9rem; }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid #eef0f3; font-size: 0.95rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) { background: #f6f8fa; }
+
+    /* ── Callout Boxes ─────────────────────────────────────────── */
+    .callout { border-left: 4px solid #3a86ff; background: #eef4ff; padding: 1.25rem 1.5rem; border-radius: 0 12px 12px 0; margin: 1.5rem 0; }
+    .callout.warn { border-left-color: #f85149; background: #fff0f0; }
+    .callout.success { border-left-color: #3fb950; background: #edfff4; }
+    .callout strong { display: block; margin-bottom: 0.3rem; }
+
+    /* ── Steps ─────────────────────────────────────────────────── */
+    .steps { counter-reset: step; list-style: none; padding: 0; margin: 1.5rem 0; }
+    .steps li {
+      counter-increment: step; position: relative; padding: 1.2rem 1.2rem 1.2rem 4rem;
+      margin-bottom: 0.75rem; background: #fff; border: 1px solid #e0e4ea; border-radius: 12px;
+    }
+    .steps li::before {
+      content: counter(step); position: absolute; left: 1rem; top: 1.2rem;
+      width: 2.2rem; height: 2.2rem; border-radius: 50%; background: #3a86ff; color: #fff;
+      font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.95rem;
+    }
+
+    /* ── Architecture (ASCII) ──────────────────────────────────── */
+    .arch-box {
+      background: #0d1117; color: #79b8ff; padding: 2rem; border-radius: 14px;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.6;
+      overflow-x: auto; margin: 1.5rem 0; border: 1px solid #21262d;
+    }
+    .arch-box .g { color: #3fb950; }
+    .arch-box .r { color: #f85149; }
+    .arch-box .d { color: #484f58; }
+    .arch-box .w { color: #e6edf3; }
+
+    /* ── TOC ───────────────────────────────────────────────────── */
+    .toc { background: #fff; border: 1px solid #e0e4ea; border-radius: 14px; padding: 2rem 2.5rem; margin: 2rem 0; columns: 2; column-gap: 3rem; }
+    .toc h3 { column-span: all; margin-top: 0; }
+    .toc ol { padding-left: 1.5rem; margin-bottom: 0; }
+    .toc li { margin: 0.35rem 0; break-inside: avoid; }
+
+    /* ── Footer ────────────────────────────────────────────────── */
+    footer { background: #0d1117; color: #8b949e; text-align: center; padding: 3rem 0; font-size: 0.9rem; }
+    footer a { color: #79b8ff; }
+
+    /* ── Responsive ────────────────────────────────────────────── */
+    @media (max-width: 800px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-text h1 { font-size: 2.2rem; }
+      .hero-images { transform: none; }
+      .showcase { grid-template-columns: 1fr; }
+      .showcase.reverse { direction: ltr; }
+      .img-row { grid-template-columns: 1fr; }
+      .img-grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .video-grid { grid-template-columns: 1fr; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+      .toc { columns: 1; }
+      .container { padding: 0 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════ HERO ════════════════ -->
+<header class="hero">
+  <div class="hero-overlay"></div>
+  <div class="container">
+    <div class="hero-grid">
+      <div class="hero-text">
+        <h1>SmolVLA on <span class="accent">SO-101</span></h1>
+        <p class="subtitle">Teaching a robot arm to pick up a box and place it in the right bowl &mdash; using nothing but camera images and natural language instructions.</p>
+        <div class="badges">
+          <span class="badge">SmolVLA</span>
+          <span class="badge">SO-101 Arm</span>
+          <span class="badge">LeRobot</span>
+          <span class="badge">Voice Control</span>
+          <span class="badge">RLT</span>
+        </div>
+        <p class="meta">Rajat Dandekar &middot; March 2026</p>
+      </div>
+      <div class="hero-images" style="grid-template-columns: 1fr;">
+        <img src="img/setup_photo.jpg" alt="Full hardware setup: SO-101 arm, 3 bowls, box, cameras, Mac" style="grid-column: span 2; aspect-ratio: auto; border: 3px solid rgba(58,134,255,0.3);">
+      </div>
+    </div>
+  </div>
+  <svg class="hero-wave" viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 60L1440 60L1440 0C1200 50 960 30 720 40C480 50 240 20 0 40L0 60Z" fill="#f8f9fc"/>
+  </svg>
+</header>
+
+<!-- ════════════════ STATS ════════════════ -->
+<section style="padding-top: 3rem;">
+  <div class="container">
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="number">45</div>
+        <div class="label">Training Episodes</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">30K</div>
+        <div class="label">Training Steps</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">3</div>
+        <div class="label">Bowl Targets</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">30Hz</div>
+        <div class="label">Control Rate</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ TOC ════════════════ -->
+<section style="padding-top: 1rem;">
+  <div class="container">
+    <div class="toc">
+      <h3>Contents</h3>
+      <ol>
+        <li><a href="#overview">Project Overview</a></li>
+        <li><a href="#task">The Task</a></li>
+        <li><a href="#hardware">Hardware Setup</a></li>
+        <li><a href="#software">Software Stack</a></li>
+        <li><a href="#pipeline">End-to-End Pipeline</a></li>
+        <li><a href="#data-collection">Data Collection</a></li>
+        <li><a href="#training">Training SmolVLA</a></li>
+        <li><a href="#inference">Inference &amp; Deployment</a></li>
+        <li><a href="#voice">Voice-Controlled Inference</a></li>
+        <li><a href="#intent">Intent Classification</a></li>
+        <li><a href="#rlt">RLT: RL from Trajectory</a></li>
+        <li><a href="#bugs">Critical Bugs &amp; Fixes</a></li>
+        <li><a href="#learnings">Key Learnings</a></li>
+        <li><a href="#demos">Demos &amp; Videos</a></li>
+        <li><a href="#reproduce">How to Reproduce</a></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ 1. OVERVIEW ════════════════ -->
+<section id="overview">
+  <div class="container">
+    <p class="section-label">Overview</p>
+    <h2>What We Built</h2>
+
+    <div class="showcase">
+      <div>
+        <p>
+          This project implements <strong>SmolVLA</strong> (a compact Vision-Language-Action model) on a real
+          <strong>SO-101</strong> 6-DOF robotic arm to perform language-conditioned pick-and-place.
+        </p>
+        <p>
+          The robot learns to pick up a box and place it in one of three colored bowls (red, green, blue)
+          based on natural language instructions. SmolVLA's VLM backbone <em>semantically grounds</em>
+          language &mdash; "the ocean-colored bowl" maps to blue, "the grassy bowl" maps to green.
+        </p>
+        <p>
+          We extended this with <strong>voice control</strong> (Whisper STT), <strong>intent classification</strong>
+          (sentence-transformers), and an experimental
+          <strong>RL fine-tuning pipeline</strong> (RLT).
+        </p>
+      </div>
+      <div class="showcase-img">
+        <img src="img/webcam_ep_blue_bowl.jpg" alt="Workspace with box and 3 bowls">
+      </div>
+    </div>
+
+    <!-- Full setup photo banner -->
+    <div class="img-banner">
+      <img src="img/setup_photo.jpg" alt="Complete hardware setup: SO-101 follower arm with gripper, 3 colored bowls (blue, green, red), box to pick, overhead webcam on tripod, Mac running inference, leader arm for teleoperation">
+    </div>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">&#x1F4F7;</div>
+        <h4>Vision-Language-Action</h4>
+        <p>Camera images + natural language &rarr; joint positions. The model sees, reads, and acts.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x1F3A4;</div>
+        <h4>Voice Control</h4>
+        <p>Speak new instructions while the robot runs. Whisper STT + live task switching, no restarts.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x1F916;</div>
+        <h4>Real Hardware</h4>
+        <p>Deployed on a real SO-101 arm with dual cameras. Train in the cloud, run locally on Mac M4 Pro.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ 2. THE TASK ════════════════ -->
+<section id="task">
+  <div class="container">
+    <p class="section-label">The Task</p>
+    <h2>Pick Up Box, Place in Bowl</h2>
+
+    <!-- 3 webcam images showing the 3 bowl targets -->
+    <div class="img-row">
+      <div class="img-card">
+        <img src="img/webcam_ep_blue_bowl.jpg" alt="Blue bowl target">
+        <div class="caption">"Place it in the blue bowl"</div>
+      </div>
+      <div class="img-card">
+        <img src="img/webcam_ep_green_bowl.jpg" alt="Green bowl target">
+        <div class="caption">"Place it in the green bowl"</div>
+      </div>
+      <div class="img-card">
+        <img src="img/webcam_ep_red_bowl.jpg" alt="Red bowl target">
+        <div class="caption">"Place it in the red bowl"</div>
+      </div>
+    </div>
+
+    <p>
+      Given a natural language instruction, the robot must: visually locate the box, grasp it,
+      lift and transport it, then place it into the correct colored bowl and release.
+    </p>
+
+    <h3>Semantic Grounding</h3>
+    <p>SmolVLA doesn't just match keywords &mdash; it understands meaning:</p>
+    <table>
+      <tr><th>What You Say</th><th>What the Robot Does</th></tr>
+      <tr><td>"Place it in the <strong>blue</strong> bowl"</td><td>Picks box &rarr; blue bowl (literal)</td></tr>
+      <tr><td>"Put it in the bowl colored like the <strong>ocean</strong>"</td><td>Picks box &rarr; blue bowl (semantic)</td></tr>
+      <tr><td>"Move it to the <strong>grass</strong>-colored bowl"</td><td>Picks box &rarr; green bowl (semantic)</td></tr>
+      <tr><td>"The bowl that looks like <strong>blood</strong>"</td><td>Picks box &rarr; red bowl (semantic)</td></tr>
+      <tr><td>"The <strong>sky</strong>-colored bowl"</td><td>Picks box &rarr; blue bowl (semantic)</td></tr>
+      <tr><td>"The <strong>emerald</strong> one"</td><td>Picks box &rarr; green bowl (semantic)</td></tr>
+    </table>
+
+    <div class="callout success">
+      <strong>This is the power of vision-language pre-training</strong>
+      The model was only trained with literal color names ("red bowl", "green bowl", "blue bowl"), yet
+      at inference time it correctly interprets metaphorical descriptions. Zero-shot generalization from the VLM backbone.
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ 3. HARDWARE ════════════════ -->
+<section id="hardware">
+  <div class="container">
+    <p class="section-label">Hardware</p>
+    <h2>The Setup</h2>
+
+    <div class="showcase reverse">
+      <div>
+        <h3>SO-101 Robot Arm</h3>
+        <table>
+          <tr><th>Spec</th><th>Detail</th></tr>
+          <tr><td>DOF</td><td>6 (5 arm + 1 gripper)</td></tr>
+          <tr><td>Joints</td><td>shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll</td></tr>
+          <tr><td>Gripper</td><td>Parallel jaw, 2 coupled fingers</td></tr>
+          <tr><td>Actuators</td><td>Feetech STS3215 serial bus servos</td></tr>
+          <tr><td>Control</td><td>30 Hz position control via USB serial</td></tr>
+        </table>
+      </div>
+      <div class="showcase-img">
+        <img src="img/setup_photo.jpg" alt="Full hardware setup: SO-101 arm, bowls, cameras, Mac">
+      </div>
+    </div>
+
+    <h3>Dual Camera Setup</h3>
+    <table>
+      <tr><th>Camera</th><th>Name</th><th>Resolution</th><th>Purpose</th></tr>
+      <tr><td>Overhead Webcam</td><td><code>webcam</code> (index 0)</td><td>640x480 @ 30fps</td><td>Bird's-eye view of workspace</td></tr>
+      <tr><td>Wrist Camera</td><td><code>arm_cam</code> (index 1)</td><td>640x480 @ 30fps</td><td>Close-up from robot's wrist</td></tr>
+    </table>
+
+    <div class="callout">
+      <strong>Camera Rename Map</strong>
+      Physical cameras are <code>webcam</code> / <code>arm_cam</code>, but SmolVLA expects
+      <code>camera1</code> / <code>camera2</code>. A rename map handles this during both training and inference.
+    </div>
+
+    <h3>Leader Arm (Teleoperation)</h3>
+    <p>An identical SO-101 arm serves as the <strong>leader</strong> for human demonstrations. The human moves the leader, and the follower mirrors in real time at 30 Hz.</p>
+
+    <h3>Compute</h3>
+    <table>
+      <tr><th>Stage</th><th>Hardware</th><th>Detail</th></tr>
+      <tr><td>Data Collection &amp; Inference</td><td>Mac M4 Pro</td><td>MPS GPU, real-time forward pass</td></tr>
+      <tr><td>Training</td><td>RunPod A100 80GB</td><td>batch=64, ~2 hrs for 30K steps</td></tr>
+      <tr><td>Training (alt)</td><td>RunPod A40 48GB</td><td>batch=32, ~3.5 hrs</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 4. SOFTWARE ════════════════ -->
+<section id="software">
+  <div class="container">
+    <p class="section-label">Software</p>
+    <h2>Technology Stack</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">&#x1F9E0;</div>
+        <h4>SmolVLA</h4>
+        <p>Compact Vision-Language-Action model. Takes camera images + language &rarr; outputs 50-step action chunks (joint positions).</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x1F3ED;</div>
+        <h4>LeRobot</h4>
+        <p>HuggingFace's robotics framework. Unified interface for robot control, data collection, training, and deployment.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x1F399;</div>
+        <h4>Whisper STT</h4>
+        <p>OpenAI's speech-to-text. Runs locally, continuously listening for new voice instructions in a background thread.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x1F50D;</div>
+        <h4>Sentence-Transformers</h4>
+        <p>Semantic similarity matching. Maps free-form voice commands to canonical task strings. Handles paraphrases.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x1F917;</div>
+        <h4>HuggingFace Hub</h4>
+        <p>Hosts datasets and models. Train in the cloud, deploy locally. Seamless handoff via <code>from_pretrained()</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ 5. PIPELINE ════════════════ -->
+<section id="pipeline">
+  <div class="container">
+    <p class="section-label">Pipeline</p>
+    <h2>End-to-End Flow</h2>
+
+    <div class="arch-box">
+<span class="g">DATA COLLECTION</span>                    <span class="g">TRAINING</span>                         <span class="g">DEPLOYMENT</span>
+      |                                |                                |
+  Leader Arm                     RunPod A100                      Mac M4 Pro
+  (human demos)                  (cloud GPU)                     (local MPS)
+      |                                |                                |
+      v                                v                                v
+  lerobot-record ------&gt; HF Dataset ------&gt; lerobot-train ------&gt; HF Model
+  (30 Hz, 2 cams)     so101_box_to_bowl    (SmolVLA base)     smolvla_box_to_bowl
+  (60s episodes)       (45 episodes)       (30K steps)          (fine-tuned)
+  (3 bowl colors)                          (batch=64)
+      |                                                               |
+      v                                                               v
+  15 eps x red                                                  lerobot-record
+  15 eps x green                                                --policy.path=...
+  15 eps x blue                                                 (autonomous mode)
+                                                                      |
+                                                                      v
+                                                              <span class="r">Voice Control (optional)</span>
+                                                                Whisper STT
+                                                                "put it in the
+                                                                 ocean-colored bowl"
+                                                                      |
+                                                                      v
+                                                              <span class="r">Intent Classification</span>
+                                                                sentence-transformers
+                                                                semantic matching
+                                                                      |
+                                                                      v
+                                                                <span class="w">Robot picks and places!</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ 6. DATA COLLECTION ════════════════ -->
+<section id="data-collection">
+  <div class="container">
+    <p class="section-label">Step 1</p>
+    <h2>Data Collection</h2>
+
+    <div class="showcase">
+      <div>
+        <p>
+          We collected <strong>~45 teleoperation episodes</strong> across 3 bowl colors using
+          <code>lerobot-record</code>. A human moves the leader arm, the follower mirrors the motion,
+          and both camera streams + joint positions are recorded at 30 Hz.
+        </p>
+        <table>
+          <tr><th>Parameter</th><th>Value</th></tr>
+          <tr><td>Episodes per color</td><td>15</td></tr>
+          <tr><td>Total episodes</td><td>~45</td></tr>
+          <tr><td>Episode duration</td><td>60 seconds max</td></tr>
+          <tr><td>FPS</td><td>30 Hz</td></tr>
+          <tr><td>Cameras</td><td>2 (overhead + wrist)</td></tr>
+        </table>
+      </div>
+      <div class="showcase-img">
+        <img src="img/webcam_ep_green_bowl.jpg" alt="Recording workspace - box and bowls">
+      </div>
+    </div>
+
+    <h3>Recording Commands</h3>
+    <pre><code># Record 15 episodes for each bowl color:
+./record_box_to_bowl.sh red      # Creates dataset
+./record_box_to_bowl.sh green    # Appends (--resume=true)
+./record_box_to_bowl.sh blue     # Appends (--resume=true)</code></pre>
+
+    <h3>What Gets Recorded Per Timestep (30 Hz)</h3>
+    <pre><code>{
+  "observation.state":          [6 floats]   // shoulder_pan ... gripper
+  "observation.images.webcam":  [480x640x3]  // overhead camera
+  "observation.images.arm_cam": [480x640x3]  // wrist camera
+  "action":                     [6 floats]   // leader arm positions (target)
+  "task":                       string       // "Pick up the box and place it in the {color} bowl"
+}</code></pre>
+  </div>
+</section>
+
+<!-- ════════════════ 7. TRAINING ════════════════ -->
+<section id="training">
+  <div class="container">
+    <p class="section-label">Step 2</p>
+    <h2>Training SmolVLA</h2>
+
+    <p>
+      Fine-tuning adapts the pretrained <code>lerobot/smolvla_base</code> model on our custom dataset.
+      The VLM backbone retains its language understanding; only the action head learns our robot's joint space.
+    </p>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="number">A100</div>
+        <div class="label">GPU (80GB VRAM)</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">64</div>
+        <div class="label">Batch Size</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">30K</div>
+        <div class="label">Training Steps</div>
+      </div>
+      <div class="stat-card">
+        <div class="number">~2h</div>
+        <div class="label">Training Time</div>
+      </div>
+    </div>
+
+    <h3>Training Command (RunPod)</h3>
+    <pre><code># Setup on RunPod (run once):
+apt-get update && apt-get install -y ffmpeg
+pip install "lerobot[smolvla]"
+huggingface-cli login --token $HF_TOKEN
+
+# Train:
+lerobot-train \
+  --policy.path=lerobot/smolvla_base \
+  --policy.repo_id="RajatDandekar/smolvla_box_to_bowl" \
+  --policy.device=cuda \
+  --policy.use_amp=true \
+  --dataset.repo_id="RajatDandekar/so101_box_to_bowl" \
+  --batch_size=64 --steps=30000 --num_workers=8 \
+  --save_freq=5000 --log_freq=50 \
+  --rename_map='{"observation.images.webcam": "observation.images.camera1",
+                 "observation.images.arm_cam": "observation.images.camera2"}'</code></pre>
+  </div>
+</section>
+
+<!-- ════════════════ 8. INFERENCE ════════════════ -->
+<section id="inference">
+  <div class="container">
+    <p class="section-label">Step 3</p>
+    <h2>Inference &amp; Deployment</h2>
+
+    <div class="showcase reverse">
+      <div>
+        <p>
+          The trained model deploys on <strong>Mac M4 Pro</strong> using MPS acceleration. The robot runs at
+          30 Hz, taking camera images and outputting <strong>action chunks of 50 steps</strong>.
+        </p>
+        <h4>How Action Chunking Works</h4>
+        <p>The model predicts 50 future joint positions at once. These are queued and executed one per control step. Only when the queue empties does the model run again. This produces <strong>smooth, continuous motion</strong>.</p>
+      </div>
+      <div class="showcase-img">
+        <video controls preload="metadata" autoplay muted loop playsinline>
+          <source src="video/blue_bowl_demo.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+
+    <div class="arch-box">
+<span class="g">Action Chunking Pipeline (predict_action)</span>
+
+Step 1: Policy generates 50-step action chunk
+        [a1, a2, a3, ... a50]    <span class="d">// 50 joint position targets</span>
+
+Step 2: Actions queued in a deque
+        Queue: [a1, a2, a3, ... a50]
+
+Step 3: Each control step (33ms at 30Hz) pops one action
+        Step t=0:  send a1    Queue: [a2, a3, ... a50]
+        Step t=1:  send a2    Queue: [a3, ... a50]
+        ...
+        Step t=49: send a50   Queue: <span class="r">[]  (empty!)</span>
+
+Step 4: Queue empty &rarr; generate new chunk
+        Policy forward pass &rarr; new [a1', a2', ... a50']
+
+<span class="r">CRITICAL: Use predict_action() &mdash; NOT sample_actions() every step!</span>
+    </div>
+
+    <div class="callout warn">
+      <strong>The Biggest Inference Mistake</strong>
+      Calling <code>sample_actions()</code> every control step and using <code>action[0]</code> generates a
+      new 50-step trajectory every 33ms. The robot always jumps to the start of a new trajectory &mdash;
+      causing violent jerking. Use <code>predict_action()</code> from <code>lerobot.utils.control_utils</code>.
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ 9. VOICE CONTROL ════════════════ -->
+<section id="voice">
+  <div class="container">
+    <p class="section-label">Voice</p>
+    <h2>Voice-Controlled Inference</h2>
+
+    <div class="showcase">
+      <div>
+        <p>
+          A background thread continuously listens via <strong>Whisper STT</strong>. When you speak a new
+          instruction, the robot's behavior changes on the <strong>very next control step</strong> &mdash;
+          no stopping, no episode boundaries.
+        </p>
+        <p>The robot runs autonomously for up to 60 minutes. Just speak to redirect it.</p>
+        <pre><code># Voice mode
+python voice_inference.py
+
+# Text mode (keyboard)
+python voice_inference.py --text_mode
+
+# Custom initial task
+python voice_inference.py \
+  --initial_task "Pick up the box \
+    and place it in the red bowl"</code></pre>
+      </div>
+      <div class="showcase-img">
+        <video controls preload="metadata">
+          <source src="video/intent_demo.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+
+    <div class="arch-box">
+<span class="g">Voice Control Architecture</span>
+
+  +-------------------------------------------------+
+  |  <span class="r">Background Thread (continuous)</span>                  |
+  |                                                   |
+  |  Microphone --&gt; Whisper STT --&gt; Text              |
+  |                                  |                |
+  |                    +-------------+                |
+  |                    v                              |
+  |              TaskState (thread-safe)              |
+  |                    |                              |
+  +--------------------|------------------------------ +
+                       |
+  +--------------------|------------------------------+
+  |  <span class="g">Main Thread (30 Hz control loop)</span>                |
+  |                    v                              |
+  |         Read current task from TaskState          |
+  |                    |                              |
+  |         SmolVLA forward pass                      |
+  |         (images + task string)                    |
+  |                    |                              |
+  |         predict_action() &rarr; robot               |
+  +---------------------------------------------------+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ 10. INTENT CLASSIFICATION ════════════════ -->
+<section id="intent">
+  <div class="container">
+    <p class="section-label">Intent</p>
+    <h2>Intent Classification System</h2>
+
+    <p>
+      For robust voice control, we map free-form transcripts to <strong>canonical task strings</strong>
+      using <strong>sentence-transformers</strong> semantic similarity. This ensures the exact training-time
+      task string reaches SmolVLA, even from noisy speech.
+    </p>
+
+    <div class="arch-box">
+<span class="g">Intent Classification Flow</span>
+
+  Voice Input: "put it in the leafy one"
+       |
+       v
+  Whisper STT &rarr; "put it in the leafy one"
+       |
+       v
+  Sentence Transformer (encode to embedding)
+       |
+       v
+  Cosine Similarity vs. Reference Embeddings:
+       +-- "green", "green bowl", "color of grass", "leaves", "emerald"
+       +-- "blue", "blue bowl", "color of sky", "ocean", "sapphire"
+       +-- "red", "red bowl", "color of blood", "fire", "ruby"
+       |
+       v
+  Best match: <span class="g">"green"</span> (similarity: 0.87)
+       |
+       v
+  Canonical: <span class="w">"Pick up the box and place it in the green bowl"</span>
+       |
+       v
+  SmolVLA inference with exact training-time task string
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ RLT ════════════════ -->
+<section id="rlt">
+  <div class="container">
+    <p class="section-label">Advanced</p>
+    <h2>RLT: Reinforcement Learning from Trajectory</h2>
+
+    <p>
+      Beyond imitation learning, we implemented the <strong>RLT</strong> approach: using SmolVLA's frozen
+      embeddings as features for an RL actor-critic that handles <strong>precision phases</strong> (grasping,
+      exact placement) where the base VLA struggles.
+    </p>
+
+    <div class="arch-box">
+<span class="g">RLT: 2-Stage Architecture</span>
+
+<span class="g">STAGE 1: Encoder-Decoder (offline)</span>            <span class="g">STAGE 2: Online RL + Human Intervention</span>
+
+  SmolVLA (frozen)                              Robot runs VLA autonomously
+       |                                              |
+       v                                              v
+  VLA embeddings                                Human grabs leader arm
+       |                                        to intervene when needed
+       v                                              |
+  RLT Encoder --&gt; z_rl                               v
+       |          (compact)                     Transitions &rarr; Replay Buffer
+       v                                              |
+  RLT Decoder --&gt; reconstruct                        v
+                                                Actor-Critic RL updates
+  <span class="d">Loss: 0.707 (converged)</span>                       <span class="d">(PPO/TRPO style)</span>
+
+
+<span class="g">INFERENCE: VLA &harr; Actor Switching (SPACE key)</span>
+
+  VLA handles easy parts (approach, positioning)
+       | <span class="r">press SPACE</span>
+       v
+  RL Actor takes over for precision phase
+  (grasping, exact placement)
+       | <span class="r">press SPACE</span>
+       v
+  Back to VLA
+    </div>
+
+    <h3>Training Status</h3>
+    <table>
+      <tr><th>Metric</th><th>Value</th></tr>
+      <tr><td>Stage 1 encoder loss</td><td>0.707 (converged)</td></tr>
+      <tr><td>Stage 2 episodes</td><td>20 (5 warmup + 15 training)</td></tr>
+      <tr><td>RL updates</td><td>630</td></tr>
+      <tr><td>Replay buffer</td><td>326 transitions (94 from human intervention)</td></tr>
+      <tr><td>Actor status</td><td>Not yet converged (needs gradient clipping + more episodes)</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 13. BUGS & FIXES ════════════════ -->
+<section id="bugs">
+  <div class="container">
+    <p class="section-label">Debugging</p>
+    <h2>10 Critical Integration Bugs &amp; Fixes</h2>
+
+    <p>Integrating SmolVLA with real hardware involved solving these non-obvious bugs. Documented for anyone attempting similar work.</p>
+
+    <div class="callout warn">
+      <strong>#1 State Vector Order (THE BIGGEST BUG)</strong>
+      Building the state with <code>sorted()</code> on joint names produces alphabetical order, but the model
+      was trained with motor-definition order. Per-element normalization applies to the wrong joints &rarr;
+      garbage model input &rarr; erratic motion.<br>
+      <strong>Fix:</strong> Build state explicitly using <code>JOINT_NAMES</code> order.
+    </div>
+
+    <div class="callout warn">
+      <strong>#2 Action Chunking</strong>
+      Calling <code>sample_actions()</code> every step generates a new trajectory each 33ms. Robot always
+      jumps to the start &rarr; violent jerking.<br>
+      <strong>Fix:</strong> Use <code>predict_action()</code> from <code>lerobot.utils.control_utils</code>.
+    </div>
+
+    <div class="callout warn">
+      <strong>#3 Do NOT Call .float() on SmolVLA</strong>
+      <code>.to(device).float()</code> converts the model to float32, changing numerical behavior and producing wrong outputs.<br>
+      <strong>Fix:</strong> Just <code>.to(device)</code> &mdash; no <code>.float()</code>.
+    </div>
+
+    <div class="callout">
+      <strong>#4 Features Not Populated by from_pretrained</strong>
+      <code>SmolVLAPolicy.from_pretrained()</code> doesn't set <code>input_features</code>/<code>output_features</code>.<br>
+      <strong>Fix:</strong> Manually set features using <code>PolicyFeature</code>.
+    </div>
+
+    <div class="callout">
+      <strong>#5 Missing Preprocessor/Postprocessor</strong>
+      Without normalization stats, model outputs are in normalized space &mdash; meaningless to the robot.<br>
+      <strong>Fix:</strong> Load from checkpoint via <code>PolicyProcessorPipeline.from_pretrained()</code>.
+    </div>
+
+    <div class="callout">
+      <strong>#6 Camera Rename Map Required</strong>
+      Camera names <code>webcam</code>/<code>arm_cam</code> don't match policy expectation <code>camera1</code>/<code>camera2</code>.<br>
+      <strong>Fix:</strong> Use rename map in both training and inference.
+    </div>
+
+    <div class="callout">
+      <strong>#7 Camera Resolution</strong>
+      Non-native resolutions fail. Capture at 640x480 &mdash; SmolVLA's preprocessor handles resizing internally.
+    </div>
+
+    <div class="callout">
+      <strong>#8 Episode Length Too Short</strong>
+      Default 50 steps = 1.7s. Pick-and-place needs 30-50s.<br>
+      <strong>Fix:</strong> <code>--steps_per_episode 1500</code>
+    </div>
+
+    <div class="callout">
+      <strong>#9 torch.load Allowlist</strong>
+      RLT checkpoint contains <code>NormalizationMode</code> enum blocked by <code>weights_only=True</code>.<br>
+      <strong>Fix:</strong> <code>torch.serialization.add_safe_globals([NormalizationMode])</code>
+    </div>
+
+    <div class="callout">
+      <strong>#10 LeRobot Import Paths</strong>
+      It's <code>so_follower</code>, not <code>so101_follower</code>. Check import paths carefully.
+    </div>
+
+    <div class="callout success">
+      <strong>The Golden Rule</strong>
+      Use <code>predict_action()</code> from <code>lerobot.utils.control_utils</code> &mdash; the exact
+      same function <code>lerobot-record</code> uses. Don't reimplement the pipeline.
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ 14. LEARNINGS ════════════════ -->
+<section id="learnings">
+  <div class="container">
+    <p class="section-label">Takeaways</p>
+    <h2>Key Learnings</h2>
+
+    <h3>What Worked</h3>
+    <div class="card-grid">
+      <div class="card" style="border-left: 4px solid #3fb950;">
+        <h4>Semantic Grounding Is Real</h4>
+        <p>Training with literal colors generalizes to metaphors ("ocean" &rarr; blue). VLM pre-training delivers.</p>
+      </div>
+      <div class="card" style="border-left: 4px solid #3fb950;">
+        <h4>45 Episodes Is Enough</h4>
+        <p>With SmolVLA's pretrained backbone, ~45 demos sufficed for reliable 3-target pick-and-place.</p>
+      </div>
+      <div class="card" style="border-left: 4px solid #3fb950;">
+        <h4>Cloud Train, Local Deploy</h4>
+        <p>2 hrs on A100, deploy on M4 Pro. HuggingFace Hub makes the handoff seamless.</p>
+      </div>
+    </div>
+
+    <h3>What Was Tricky</h3>
+    <div class="card-grid">
+      <div class="card" style="border-left: 4px solid #f85149;">
+        <h4>State Vector Ordering</h4>
+        <p>Silent corruption with no error message. Alphabetical vs. motor order &mdash; the most destructive bug.</p>
+      </div>
+      <div class="card" style="border-left: 4px solid #f85149;">
+        <h4>Action Chunking</h4>
+        <p>The difference between smooth and violent jerking is one function call: <code>predict_action()</code>.</p>
+      </div>
+      <div class="card" style="border-left: 4px solid #f85149;">
+        <h4>Normalization Pipeline</h4>
+        <p>Without exact preprocessor/postprocessor from the checkpoint, actions are meaningless numbers.</p>
+      </div>
+      <div class="card" style="border-left: 4px solid #f85149;">
+        <h4>RL on Top of VLA</h4>
+        <p>Actor-critic needs careful gradient clipping. Critic loss exploded to trillions without it.</p>
+      </div>
+    </div>
+
+    <h3>Advice for Future Projects</h3>
+    <ol class="steps">
+      <li><strong>Use the framework's own inference pipeline.</strong> Don't reimplement <code>predict_action()</code>. There are dozens of subtle details you'll get wrong.</li>
+      <li><strong>Capture at native camera resolution.</strong> Let the model's preprocessor handle resizing.</li>
+      <li><strong>Print and verify joint order explicitly.</strong> Never rely on dictionary iteration order.</li>
+      <li><strong>Use cloud GPUs for training.</strong> A 2-hour A100 session costs less than a coffee.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ════════════════ 15. DEMOS ════════════════ -->
+<section id="demos">
+  <div class="container">
+    <p class="section-label">See It In Action</p>
+    <h2>Demo Videos &amp; Images</h2>
+
+    <!-- Feature video -->
+    <div class="feature-video">
+      <video controls preload="metadata">
+        <source src="video/combined_demo.mp4" type="video/mp4">
+      </video>
+      <div class="caption"><strong>Full demonstration:</strong> Multiple episodes showing the robot picking and placing into different bowls autonomously.</div>
+    </div>
+
+    <!-- Video grid -->
+    <div class="video-grid">
+      <div class="video-card">
+        <video controls preload="metadata">
+          <source src="video/blue_bowl_demo.mp4" type="video/mp4">
+        </video>
+        <div class="caption">Blue Bowl Placement</div>
+      </div>
+      <div class="video-card">
+        <video controls preload="metadata">
+          <source src="video/green_bowl_demo.mp4" type="video/mp4">
+        </video>
+        <div class="caption">Green Bowl Placement</div>
+      </div>
+      <div class="video-card">
+        <video controls preload="metadata">
+          <source src="video/blue_bowl_demo2.mp4" type="video/mp4">
+        </video>
+        <div class="caption">Blue Bowl (consistency test)</div>
+      </div>
+      <div class="video-card">
+        <video controls preload="metadata">
+          <source src="video/green_bowl_demo2.mp4" type="video/mp4">
+        </video>
+        <div class="caption">Green Bowl (consistency test)</div>
+      </div>
+    </div>
+
+    <!-- Intent demo (feature) -->
+    <div class="feature-video">
+      <video controls preload="metadata">
+        <source src="video/intent_demo.mp4" type="video/mp4">
+      </video>
+      <div class="caption"><strong>Intent classification demo:</strong> Voice commands mapped to canonical tasks. The robot switches between bowl targets in real time.</div>
+    </div>
+
+    <!-- Robot workspace photos -->
+    <h3>Robot Workspace</h3>
+    <div class="img-row">
+      <div class="img-card">
+        <img src="img/webcam_ep_blue_bowl.jpg" alt="Blue bowl workspace">
+        <div class="caption">Overhead: Blue Bowl Task</div>
+      </div>
+      <div class="img-card">
+        <img src="img/webcam_ep_green_bowl.jpg" alt="Green bowl workspace">
+        <div class="caption">Overhead: Green Bowl Task</div>
+      </div>
+      <div class="img-card">
+        <img src="img/webcam_ep_red_bowl.jpg" alt="Red bowl workspace">
+        <div class="caption">Overhead: Red Bowl Task</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════ 16. REPRODUCE ════════════════ -->
+<section id="reproduce">
+  <div class="container">
+    <p class="section-label">Reproduce</p>
+    <h2>How to Reproduce This Project</h2>
+
+    <h3>Prerequisites</h3>
+    <ul>
+      <li>Mac with Apple Silicon (M1-M4) or Linux with CUDA GPU</li>
+      <li>SO-101 follower + leader arms</li>
+      <li>2 USB webcams (overhead + wrist)</li>
+      <li>Python 3.10+, HuggingFace account</li>
+      <li>RunPod or similar cloud GPU (24GB+ VRAM)</li>
+    </ul>
+
+    <ol class="steps">
+      <li>
+        <strong>Clone and set up LeRobot</strong>
+        <pre><code>git clone https://github.com/huggingface/lerobot.git
+cd lerobot && pip install -e ".[smolvla]"
+pip install openai-whisper sounddevice sentence-transformers</code></pre>
+      </li>
+      <li>
+        <strong>Calibrate hardware</strong>
+        <pre><code>lerobot-find-port
+lerobot-calibrate --robot.type=so101_follower --robot.port=PORT --robot.id=my_follower
+lerobot-calibrate --teleop.type=so101_leader  --teleop.port=PORT --teleop.id=my_leader</code></pre>
+      </li>
+      <li>
+        <strong>Record 45 demonstrations</strong>
+        <pre><code>./record_box_to_bowl.sh red    # 15 episodes (creates dataset)
+./record_box_to_bowl.sh green  # 15 episodes (appends)
+./record_box_to_bowl.sh blue   # 15 episodes (appends)</code></pre>
+      </li>
+      <li>
+        <strong>Train on cloud GPU (~2 hrs on A100)</strong>
+        <pre><code>bash train_smolvla_box_bowl_runpod.sh</code></pre>
+      </li>
+      <li>
+        <strong>Run inference</strong>
+        <pre><code>./run_inference.sh              # Autonomous mode
+python voice_inference.py       # Voice control
+python intent_inference.py      # Intent classification</code></pre>
+      </li>
+    </ol>
+
+    <h3>HuggingFace Resources</h3>
+    <table>
+      <tr><th>Resource</th><th>Repo ID</th></tr>
+      <tr><td>Training dataset</td><td><code>RajatDandekar/so101_box_to_bowl</code></td></tr>
+      <tr><td>Trained model</td><td><code>RajatDandekar/smolvla_box_to_bowl</code></td></tr>
+      <tr><td>Base model</td><td><code>lerobot/smolvla_base</code></td></tr>
+    </table>
+
+    <h3>Repository Structure</h3>
+    <pre><code>Robotics/
++-- lerobot/                       # LeRobot framework (vendored)
+|   +-- src/lerobot/
+|       +-- policies/smolvla/      # SmolVLA policy
+|       +-- robots/so_follower/    # SO-101 driver
+|       +-- utils/control_utils.py # predict_action()
++-- scripts/                       # RLT training &amp; inference
++-- voice_inference.py             # Voice-controlled SmolVLA
++-- intent_inference.py            # Intent classification
++-- recordings/                    # 47+ demo videos
++-- docs/                          # This webpage
++-- *.sh                           # Shell scripts for all operations</code></pre>
+  </div>
+</section>
+
+<!-- ════════════════ FOOTER ════════════════ -->
+<footer>
+  <div class="container">
+    <p><strong>SmolVLA on SO-101</strong> &middot; Rajat Dandekar &middot; March 2026</p>
+    <p style="margin-top: 0.5rem;">
+      Built with
+      <a href="https://huggingface.co/lerobot">LeRobot</a> &middot;
+      <a href="https://huggingface.co/lerobot/smolvla_base">SmolVLA</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

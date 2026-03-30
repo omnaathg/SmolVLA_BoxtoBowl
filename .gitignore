@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment & caches
+.uv_cache/
+.uv_python/
+
+# Secrets
+.env
+
+# Large binaries
+*.pdf
+bin/
+tools/
+CH34xVCPDriver.app/
+
+# LeRobot framework (too large — users should install separately)
+lerobot/
+
+# Simulator (separate repo)
+sim_engine/
+
+# Large data files
+datasets/
+outputs/
+checkpoints/
+
+# Raw recordings (demos are in docs/video/ instead)
+recordings/
+
+# Claude settings
+.claude/
+
+# Root-level webcam images (copies live in docs/img/)
+/webcam_ep_*.jpg
