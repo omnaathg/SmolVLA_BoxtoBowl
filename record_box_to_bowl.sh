@@ -19,7 +19,7 @@ export HF_TOKEN=$HF_TOKEN
 source "$(dirname "$0")/activate.sh"
 
 # ─── CONFIGURATION ──────────────────────────────────────────────────────────
-DATASET_REPO_ID="RajatDandekar/so101_box_to_bowl"
+DATASET_REPO_ID="omnaathg/so101_box_to_bowl_2026-05-22_20260523_182359"
 EPISODES_PER_COLOR=15
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -66,13 +66,14 @@ echo ""
 
 lerobot-record \
   --robot.type=so101_follower \
-  --robot.port=/dev/tty.wchusbserial5AE60830811 \
-  --robot.id=my_follower \
-  --robot.cameras='{"webcam": {"type": "opencv", "index_or_path": 0, "width": 640, "height": 480, "fps": 30}, "arm_cam": {"type": "opencv", "index_or_path": 1, "width": 640, "height": 480, "fps": 30}}' \
+  --robot.port=COM8 \
+  --robot.id=ojas_follower_arm \
+  --robot.cameras='{"tripod_cam": {"type": "opencv", "index_or_path": 2, "width": 640, "height": 480, "fps": 30, "fourcc": "MJPG"}, "gripper_cam": {"type": "opencv", "index_or_path": 0, "width": 1280, "height": 720, "fps": 30, "fourcc": "MJPG"}}' \
   --teleop.type=so101_leader \
-  --teleop.port=/dev/tty.wchusbserial5A7C1167331 \
-  --teleop.id=my_leader \
+  --teleop.port=COM7 \
+  --teleop.id=ojas_leader_arm \
   --dataset.repo_id="${DATASET_REPO_ID}" \
+  --dataset.root="$(dirname "$0")/data" \
   --dataset.single_task="${TASK}" \
   --dataset.fps=30 \
   --dataset.episode_time_s=60 \

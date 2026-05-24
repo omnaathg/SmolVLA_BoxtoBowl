@@ -1,37 +1,31 @@
-"""Live dual camera feed viewer. Press Q to quit."""
+"""Snap one frame from each camera index and save as camera_X.jpg. No GUI needed."""
 import cv2
 import numpy as np
+from pathlib import Path
 
-cap0 = cv2.VideoCapture(0)
-cap1 = cv2.VideoCapture(1)
+INDICES = list(range(7))
+out_dir = Path("camera_snapshots")
+out_dir.mkdir(exist_ok=True)
 
-cap0.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-cap0.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-cap1.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-cap1.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+print("Probing camera indices...")
+for i in INDICES:
+    cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+    if not cap.isOpened():
+        continue
 
-print("Showing live feeds. Press Q to quit.")
+    # Read a few frames to let auto-exposure settle
+    for _ in range(5):
+        ret, frame = cap.read()
 
-while True:
-    ret0, frame0 = cap0.read()
-    ret1, frame1 = cap1.read()
+    if ret and frame is not None:
+        path = out_dir / f"camera_{i}.jpg"
+        cv2.putText(frame, f"Index {i}", (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
+        cv2.imwrite(str(path), frame)
+        h, w = frame.shape[:2]
+        print(f"  index {i}: {w}x{h}  -> saved {path}")
+    else:
+        print(f"  index {i}: opened but no frame")
 
-    if not ret0:
-        frame0 = np.zeros((480, 640, 3), dtype=np.uint8)
-        cv2.putText(frame0, "Camera 0 unavailable", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
-    if not ret1:
-        frame1 = np.zeros((480, 640, 3), dtype=np.uint8)
-        cv2.putText(frame1, "Camera 1 unavailable", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+    cap.release()
 
-    cv2.putText(frame0, "Webcam (Kreo Owl)", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-    cv2.putText(frame1, "Arm Camera (USB2.0_CAM1)", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-
-    combined = np.hstack([frame0, frame1])
-    cv2.imshow("SO-101 Live Feeds — Press Q to quit", combined)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap0.release()
-cap1.release()
-cv2.destroyAllWindows()
+print(f"\nDone. Open the '{out_dir}' folder and match each image to your physical camera.")

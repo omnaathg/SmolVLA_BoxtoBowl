@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Activate the LeRobot environment
-source "$(dirname "$0")/lerobot/.venv/bin/activate"
+source "$(dirname "$0")/lerobot/.venv/Scripts/activate"
 export PATH="$(dirname "$0")/tools:$PATH"
 echo "LeRobot environment activated."
 echo "Python: $(python --version)"
