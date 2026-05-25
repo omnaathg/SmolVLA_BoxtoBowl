@@ -53,9 +53,10 @@ cd smolvla-so101
 
 ### 2. Set up LeRobot
 
-LeRobot is included as a vendored dependency in the `lerobot/` directory.
+Clone the patched fork (includes Windows/USB camera timeout fix for 1280×720 YUY2):
 
 ```bash
+git clone https://github.com/omnaathg/lerobot.git lerobot
 cd lerobot
 pip install -e ".[smolvla]"
 cd ..
