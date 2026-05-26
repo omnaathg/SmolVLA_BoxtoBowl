@@ -21,8 +21,8 @@ source "$(dirname "$0")/activate.sh"
 
 # ─── CONFIGURATION ────────────────────────────────────────────────────────────
 DATASET_REPO_ID="omnaathg/so101_card_memory"
-EPISODES_PER_RUN=10
-EPISODE_TIME_S=12
+EPISODES_PER_RUN=20
+EPISODE_TIME_S=25
 RESET_TIME_S=15
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -60,6 +60,11 @@ echo "  Dataset:   $DATASET_REPO_ID"
 echo "  Resume:    ${RESUME_FLAG:-no (creating new dataset)}"
 echo "============================================"
 echo ""
+echo "Episode rhythm (25s):"
+echo "   0– 5s : cards face-up, all 3 visible to tripod cam"
+echo "   5–10s : slide cover over all 3 cards"
+echo "  10–25s : teleop the pick (15s)"
+echo ""
 
 lerobot-record \
     --robot.type=so101_follower \
@@ -70,7 +75,7 @@ lerobot-record \
     --teleop.port=COM7 \
     --teleop.id=ojas_leader_arm \
     --dataset.repo_id="${DATASET_REPO_ID}" \
-    --dataset.root="$(dirname "$0")/data" \
+    --dataset.root="$(dirname "$0")/data_card_memory" \
     --dataset.single_task="${TASK}" \
     --dataset.fps=30 \
     --dataset.episode_time_s=${EPISODE_TIME_S} \

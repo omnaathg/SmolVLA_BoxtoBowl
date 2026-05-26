@@ -26,9 +26,9 @@ DATASET_REPO_ID="omnaathg/so101_card_memory"
 OUTPUT_REPO_ID="omnaathg/contextvla_card_memory"
 OUTPUT_DIR="outputs/contextvla_card_memory"
 
-# Tune BATCH_SIZE to your GPU VRAM:
-#   A100 80GB → 32 | A40 48GB → 16 | 4090 24GB → 8
-BATCH_SIZE=32
+# Tune BATCH_SIZE to your GPU VRAM (11-frame sequence is ~37% longer than 8-frame):
+#   A100 80GB → 16 | A40 48GB → 8 | 4090 24GB → 4
+BATCH_SIZE=16
 STEPS=30000
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -45,7 +45,7 @@ python scripts/train_contextvla.py \
     --output_dir      "$OUTPUT_DIR" \
     --batch_size      "$BATCH_SIZE" \
     --steps           "$STEPS" \
-    --n_obs_steps     8 \
+    --n_obs_steps     11 \
     --temporal_stride 30 \
     --fps             30 \
     --device          cuda

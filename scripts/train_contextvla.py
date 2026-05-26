@@ -13,9 +13,9 @@ Usage (RunPod A100):
 Optional — warm-start action expert from pretrained SmolVLA base:
     --base_model lerobot/smolvla_base
 
-VRAM notes (A100 80GB, freeze_vision_encoder=True):
-  batch=32, bfloat16 → ~40-50 GB  (fits A100 80GB)
-  batch=16           → ~20-25 GB  (fits A100 40GB)
+VRAM notes (A100 80GB, freeze_vision_encoder=True, n_obs_steps=11):
+  batch=16, bfloat16 → ~40-50 GB  (fits A100 80GB)
+  batch=8            → ~20-25 GB  (fits A100 40GB)
 """
 
 import argparse
@@ -57,7 +57,7 @@ def parse_args():
     p.add_argument("--warmup_steps",     type=int,   default=1_000)
     p.add_argument("--weight_decay",     type=float, default=1e-10)
     p.add_argument("--grad_clip",        type=float, default=10.0)
-    p.add_argument("--n_obs_steps",      type=int,   default=8)
+    p.add_argument("--n_obs_steps",      type=int,   default=11)
     p.add_argument("--temporal_stride",  type=int,   default=30)
     p.add_argument("--fps",              type=int,   default=30)
     p.add_argument("--device",           default="cuda")

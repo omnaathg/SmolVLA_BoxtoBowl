@@ -12,11 +12,11 @@ class ContextVLAConfig(SmolVLAConfig):
     Feeds n_obs_steps frames spaced temporal_stride frames apart into the VLM,
     giving the policy memory over a window of (n_obs_steps-1)*temporal_stride/fps seconds.
 
-    Default: 8 frames × stride 30 @ 30fps = 7-second memory window.
-    delta_timestamps: [-7.0, -6.0, -5.0, -4.0, -3.0, -2.0, -1.0, 0.0] seconds.
+    Default: 11 frames × stride 30 @ 30fps = 10-second memory window.
+    delta_timestamps: [-10.0, -9.0, ..., -1.0, 0.0] seconds.
     """
 
-    n_obs_steps: int = 8
+    n_obs_steps: int = 11        # 11 frames × stride 30 @ 30fps = 10-second memory window
     temporal_stride: int = 30   # frames between sampled steps (30 = 1 sec at 30 fps)
     compression_layer: int = 8  # Phase 2 only — layer at which past tokens are pooled
     use_compression: bool = False  # False = Phase 1 (full sequence), True = Phase 2
