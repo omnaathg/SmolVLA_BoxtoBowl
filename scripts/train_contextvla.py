@@ -113,17 +113,26 @@ def _task_map(dataset: LeRobotDataset) -> dict[int, str]:
     """Normalize dataset.meta.tasks to {int_idx: str} regardless of lerobot version.
 
     Older fork returns dict[int, str]; pip-installed v3 returns a DataFrame
-    with columns (task_index, task).
+    with columns (task_index, task) where strings may be StringDtype, not object.
     """
     import pandas as pd
     raw = dataset.meta.tasks
     if isinstance(raw, dict):
         return {int(k): str(v) for k, v in raw.items()}
     if isinstance(raw, pd.DataFrame):
-        str_cols = [c for c in raw.columns if raw[c].dtype == object]
-        int_cols = [c for c in raw.columns if raw[c].dtype != object]
-        idx_series = raw[int_cols[0]] if int_cols else range(len(raw))
-        return dict(zip(idx_series.astype(int), raw[str_cols[0]].astype(str)))
+        logger.info(f"tasks DataFrame columns: {list(raw.columns)}, dtypes: {dict(raw.dtypes)}")
+        # Find task-string column by name first, then fall back to last column
+        task_col = next(
+            (c for c in raw.columns if c.lower() in ("task", "name", "description", "language_instruction")),
+            raw.columns[-1],
+        )
+        # Find index column by name, fall back to positional range
+        idx_col = next(
+            (c for c in raw.columns if "index" in c.lower() or c.lower() in ("id", "idx")),
+            None,
+        )
+        idx = raw[idx_col].astype(int) if idx_col else range(len(raw))
+        return dict(zip(idx, raw[task_col].astype(str)))
     raise TypeError(f"Unexpected tasks type: {type(raw)}")
 
 
