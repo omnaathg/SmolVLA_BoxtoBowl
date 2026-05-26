@@ -109,10 +109,28 @@ def build_delta_timestamps(config: ContextVLAConfig, fps: int) -> dict:
     }
 
 
+def _task_map(dataset: LeRobotDataset) -> dict[int, str]:
+    """Normalize dataset.meta.tasks to {int_idx: str} regardless of lerobot version.
+
+    Older fork returns dict[int, str]; pip-installed v3 returns a DataFrame
+    with columns (task_index, task).
+    """
+    import pandas as pd
+    raw = dataset.meta.tasks
+    if isinstance(raw, dict):
+        return {int(k): str(v) for k, v in raw.items()}
+    if isinstance(raw, pd.DataFrame):
+        str_cols = [c for c in raw.columns if raw[c].dtype == object]
+        int_cols = [c for c in raw.columns if raw[c].dtype != object]
+        idx_series = raw[int_cols[0]] if int_cols else range(len(raw))
+        return dict(zip(idx_series.astype(int), raw[str_cols[0]].astype(str)))
+    raise TypeError(f"Unexpected tasks type: {type(raw)}")
+
+
 def pretokenize_tasks(dataset: LeRobotDataset, processor, max_length: int, device) -> dict:
     """Pre-tokenize every unique task string in the dataset."""
     task_tokens = {}
-    for idx, task_str in dataset.meta.tasks.items():
+    for idx, task_str in _task_map(dataset).items():
         text = task_str if task_str.endswith("\n") else task_str + "\n"
         enc = processor.tokenizer(
             text,
