@@ -266,7 +266,8 @@ def main():
         }
         batch = add_language_tokens(batch, task_tokens, device)
 
-        loss, loss_dict = policy.forward(batch)
+        with torch.autocast(device_type=args.device, dtype=torch.bfloat16):
+            loss, loss_dict = policy.forward(batch)
 
         optimizer.zero_grad()
         loss.backward()
