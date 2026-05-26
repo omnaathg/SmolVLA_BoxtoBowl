@@ -186,7 +186,7 @@ def main():
 
     # ── Dataset ──────────────────────────────────────────────────────────
     logger.info(f"Loading dataset: {args.dataset_repo_id}")
-    dataset = LeRobotDataset(args.dataset_repo_id, delta_timestamps=delta_ts)
+    dataset = LeRobotDataset(args.dataset_repo_id, delta_timestamps=delta_ts, video_backend="pyav")
     dataloader = DataLoader(
         dataset,
         batch_size=args.batch_size,
