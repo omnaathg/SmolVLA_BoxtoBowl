@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 # ── Import lerobot constants and dataset ────────────────────────────────────
 from lerobot.utils.constants import ACTION, OBS_LANGUAGE_ATTENTION_MASK, OBS_LANGUAGE_TOKENS, OBS_STATE
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
-from lerobot.configs import FeatureType, PolicyFeature
+from lerobot.configs.types import FeatureType, PolicyFeature
 
 # ── Import our policy ───────────────────────────────────────────────────────
 import sys

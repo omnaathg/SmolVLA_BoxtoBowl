@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from lerobot.configs import FeatureType, NormalizationMode, PolicyFeature, PreTrainedConfig
+from lerobot.configs.types import FeatureType, NormalizationMode, PolicyFeature
+from lerobot.configs.policies import PreTrainedConfig
 from lerobot.policies.smolvla.configuration_smolvla import SmolVLAConfig
 
 

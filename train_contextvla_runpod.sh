@@ -10,7 +10,8 @@
 #
 # SETUP ON RUNPOD (run once after pod starts):
 #   apt-get update && apt-get install -y ffmpeg
-#   pip install "lerobot[smolvla]"
+#   git clone https://github.com/omnaathg/lerobot.git
+#   pip install -e "lerobot[smolvla]"
 #   git clone https://github.com/omnaathg/SmolVLA_BoxtoBowl.git
 #   cd SmolVLA_BoxtoBowl
 #
