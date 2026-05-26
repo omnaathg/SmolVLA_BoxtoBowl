@@ -199,6 +199,10 @@ def main():
     logger.info(f"Dataset: {len(dataset)} samples")
 
     # ── Policy ───────────────────────────────────────────────────────────
+    # Use memory-efficient SDPA instead of eager O(n²) attention
+    torch.backends.cuda.enable_mem_efficient_sdp(True)
+    torch.backends.cuda.enable_flash_sdp(True)
+
     logger.info("Building ContextVLAPolicy...")
     policy = ContextVLAPolicy(config)
     policy.to(device)
