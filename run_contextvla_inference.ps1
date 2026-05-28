@@ -1,5 +1,5 @@
 # =============================================================================
-# ContextVLA Card-Memory Inference — Windows PowerShell launcher
+# ContextVLA Card-Memory Inference -- Windows PowerShell launcher
 #
 # Usage:
 #   .\run_contextvla_inference.ps1                        # voice mode
@@ -17,20 +17,13 @@ param(
     [string]$DatasetRepoId  = "omnaathg/so101_card_memory",
     [string]$FollowerPort   = "COM8",
     [string]$Device         = "cuda",
-    [int]$Duration          = 60,
+    [int]$Duration          = 12,
+    [float]$ObserveS        = 15.0,
     [string]$WhisperModel   = "base",
     [switch]$TextMode
 )
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-
-# Activate virtual environment
-$ActivateScript = Join-Path $ScriptDir ".venv\Scripts\Activate.ps1"
-if (Test-Path $ActivateScript) {
-    & $ActivateScript
-} else {
-    Write-Warning "Virtual environment not found at $ActivateScript — using system Python."
-}
 
 Write-Host "=== ContextVLA Card-Memory Inference ==="
 Write-Host "  Policy:   $PolicyPath"
@@ -44,6 +37,7 @@ $PythonArgs = @(
     "--follower_port",   $FollowerPort,
     "--device",          $Device,
     "--duration",        $Duration,
+    "--observe_s",       $ObserveS,
     "--whisper_model",   $WhisperModel
 )
 
@@ -62,4 +56,8 @@ if ($TextMode) {
 
 Write-Host ""
 
-python @PythonArgs
+# Use lerobot's venv which has all smolvla/transformers dependencies
+$PythonExe = Join-Path $ScriptDir "lerobot\.venv\Scripts\python.exe"
+if (-not (Test-Path $PythonExe)) { $PythonExe = "python" }
+
+& $PythonExe @PythonArgs

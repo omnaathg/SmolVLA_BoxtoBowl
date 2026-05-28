@@ -24,7 +24,7 @@ huggingface-cli login --token "$HF_TOKEN" --add-to-git-credential
 
 # ─── CONFIGURATION ────────────────────────────────────────────────────────────
 DATASET_REPO_ID="omnaathg/so101_card_memory"
-OUTPUT_REPO_ID="omnaathg/contextvla_card_memory"
+OUTPUT_REPO_ID="omnaathg/contextvla_card_memory_v2"
 OUTPUT_DIR="outputs/contextvla_card_memory"
 
 # Tune BATCH_SIZE to your GPU VRAM (11-frame sequence is ~37% longer than 8-frame):
@@ -47,7 +47,7 @@ python scripts/train_contextvla.py \
     --batch_size      "$BATCH_SIZE" \
     --steps           "$STEPS" \
     --n_obs_steps     11 \
-    --temporal_stride 30 \
+    --temporal_stride 45 \
     --fps             30 \
     --device          cuda
 

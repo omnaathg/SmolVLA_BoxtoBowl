@@ -58,7 +58,7 @@ def parse_args():
     p.add_argument("--weight_decay",     type=float, default=1e-10)
     p.add_argument("--grad_clip",        type=float, default=10.0)
     p.add_argument("--n_obs_steps",      type=int,   default=11)
-    p.add_argument("--temporal_stride",  type=int,   default=30)
+    p.add_argument("--temporal_stride",  type=int,   default=45)
     p.add_argument("--fps",              type=int,   default=30)
     p.add_argument("--device",           default="cuda")
     p.add_argument("--save_every",       type=int,   default=5_000)

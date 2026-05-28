@@ -4,7 +4,7 @@ ContextVLA card-memory inference for SO-101.
 
 The robot has seen 3 face-up playing cards, which are then flipped face-down.
 Speak the name of the card to pick up (e.g. "ace of hearts").
-ContextVLA uses a 7-second visual memory window to identify the target.
+ContextVLA uses a 15-second visual memory window to identify the target.
 
 Usage:
     python run_contextvla_card_inference.py
@@ -204,7 +204,9 @@ def main():
     parser.add_argument("--text_mode",        action="store_true",
                         help="Type instructions instead of speaking")
     parser.add_argument("--initial_task",     default="",
-                        help="Start immediately with this card target (e.g. 'ace of hearts')")
+                        help="Card target set at start (e.g. 'ace of hearts')")
+    parser.add_argument("--observe_s",        type=float, default=15.0,
+                        help="Seconds to observe before sending actions (let buffer fill with face-up frames)")
     args = parser.parse_args()
 
     device = torch.device(args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu")
@@ -279,11 +281,90 @@ def main():
     print("  CONTEXTVLA CARD-MEMORY INFERENCE")
     print(f"  Policy:   {args.policy_path}")
     print(f"  Device:   {device}")
-    print(f"  Duration: {args.duration}s")
+    print(f"  Duration: {args.duration}s  (+{args.observe_s}s observe phase)")
     print(f"  Mode:     {'keyboard' if args.text_mode else 'voice'}")
-    print("  Speak the card name (e.g. 'ace of hearts').")
+    if args.initial_task:
+        print(f"  Card:     {args.initial_task}")
     print("  Press Ctrl+C to stop.")
     print("=" * 60 + "\n")
+
+    # ── Ready prompt — wait until user is set up ──────────────────────────────
+    print("  Arrange all 3 cards FACE-UP in front of the robot.")
+    print("  Press Enter when ready to start the countdown...")
+    input()
+
+    # ── Observe phase: structured countdown matching training timing ──────────
+    show_s  = 7.0                          # cards face-up  (match actual recorded 0–7s)
+    hide_s  = args.observe_s - show_s      # cards covered  (match actual recorded 7–15s)
+
+    def _beep():
+        try:
+            import winsound
+            winsound.Beep(880, 120)
+        except Exception:
+            pass
+
+    current_task = task_state.task or args.initial_task
+
+    def _observe_batch(obs):
+        if not current_task:
+            return
+        lang_ids, lang_masks = tokenize_task(
+            current_task, processor, policy.config.tokenizer_max_length, device
+        )
+        state_vals = np.concatenate([
+            np.atleast_1d(obs[k]).astype(np.float32)
+            for k in sorted(obs)
+            if not (isinstance(obs[k], np.ndarray) and obs[k].ndim == 3)
+        ])
+        state_dim = policy.config.input_features[OBS_STATE].shape[0]
+        batch = {
+            "observation.images.tripod_cam":  torch.from_numpy(obs["tripod_cam"]).permute(2,0,1).float().div_(255.0).unsqueeze(0).to(device),
+            "observation.images.gripper_cam": torch.from_numpy(obs["gripper_cam"]).permute(2,0,1).float().div_(255.0).unsqueeze(0).to(device),
+            OBS_STATE:                        torch.from_numpy(state_vals[:state_dim]).unsqueeze(0).to(device),
+            OBS_LANGUAGE_TOKENS:              lang_ids,
+            OBS_LANGUAGE_ATTENTION_MASK:      lang_masks,
+        }
+        with torch.no_grad():
+            policy.select_action(batch)  # fill temporal buffer, discard action
+
+    if args.observe_s > 0:
+        # Phase 1: show cards (0–5s)
+        print(f"\n  *** CARDS FACE-UP — keep them visible! ***")
+        _beep()
+        phase_end = time.perf_counter() + show_s
+        last_announce = 99
+        while time.perf_counter() < phase_end and not stop_event.is_set():
+            t0 = time.perf_counter()
+            remaining = phase_end - t0
+            tick = int(remaining) + 1
+            if tick != last_announce and tick <= 5:
+                print(f"\r  Cards visible: {tick}s ...   ", end="", flush=True)
+                last_announce = tick
+            _observe_batch(robot.get_observation())
+            dt = time.perf_counter() - t0
+            if (s := 1.0 / args.fps - dt) > 0:
+                time.sleep(s)
+
+        # Phase 2: hide cards (5–10s)
+        print(f"\n\n  *** COVER THE CARDS NOW ***")
+        _beep(); _beep()
+        phase_end = time.perf_counter() + hide_s
+        last_announce = 99
+        while time.perf_counter() < phase_end and not stop_event.is_set():
+            t0 = time.perf_counter()
+            remaining = phase_end - t0
+            tick = int(remaining) + 1
+            if tick != last_announce and tick <= 5:
+                print(f"\r  Cards hidden:  {tick}s ...   ", end="", flush=True)
+                last_announce = tick
+            _observe_batch(robot.get_observation())
+            dt = time.perf_counter() - t0
+            if (s := 1.0 / args.fps - dt) > 0:
+                time.sleep(s)
+
+        print(f"\n\n  *** ROBOT PICKING NOW — stand back! ***\n")
+        _beep(); _beep(); _beep()
 
     start_t = time.perf_counter()
     step = 0
@@ -316,7 +397,7 @@ def main():
                 for k in sorted(obs)
                 if not (isinstance(obs[k], np.ndarray) and obs[k].ndim == 3)
             ])
-            state_dim = policy.config.state_feature.shape[0]
+            state_dim = policy.config.input_features[OBS_STATE].shape[0]
             state_tensor = torch.from_numpy(state_vals[:state_dim]).unsqueeze(0).to(device)
 
             # Language tokens for current task
