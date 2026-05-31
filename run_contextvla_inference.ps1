@@ -13,7 +13,7 @@
 
 param(
     [string]$Card           = "",
-    [string]$PolicyPath     = "omnaathg/contextvla_card_memory",
+    [string]$PolicyPath     = "omnaathg/contextvla_card_memory_v2",
     [string]$DatasetRepoId  = "omnaathg/so101_card_memory",
     [string]$FollowerPort   = "COM8",
     [string]$Device         = "cuda",

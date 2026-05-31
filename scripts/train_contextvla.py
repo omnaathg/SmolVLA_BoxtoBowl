@@ -65,6 +65,8 @@ def parse_args():
     p.add_argument("--log_every",        type=int,   default=100)
     p.add_argument("--seed",             type=int,   default=42)
     p.add_argument("--num_workers",      type=int,   default=4)
+    p.add_argument("--reward_path",      type=str,   default=None,
+                   help="Path to rewards.parquet from compute_sarm_rewards.py for RA-BC weighting")
     return p.parse_args()
 
 
@@ -198,6 +200,19 @@ def main():
     data_iter = iter(dataloader)
     logger.info(f"Dataset: {len(dataset)} samples")
 
+    # ── RA-BC sample weighter (optional) ────────────────────────────────
+    rabc = None
+    if args.reward_path:
+        from lerobot.rewards.sarm.rabc import RABCWeights
+        logger.info(f"Loading RA-BC weights from {args.reward_path}")
+        rabc = RABCWeights(
+            progress_path=args.reward_path,
+            chunk_size=config.chunk_size,   # look-ahead matches action chunk size
+            head_mode="sparse",
+            device=device,
+        )
+        logger.info(f"RA-BC delta stats: {rabc.get_stats()}")
+
     # ── Policy ───────────────────────────────────────────────────────────
     # Use memory-efficient SDPA instead of eager O(n²) attention
     torch.backends.cuda.enable_mem_efficient_sdp(True)
@@ -271,7 +286,14 @@ def main():
         batch = add_language_tokens(batch, task_tokens, device)
 
         with torch.autocast(device_type=args.device, dtype=torch.bfloat16):
-            loss, loss_dict = policy.forward(batch)
+            if rabc is not None:
+                weights, rabc_stats = rabc.compute_batch_weights(batch)
+                per_sample_loss, loss_dict = policy.forward(batch, reduction="none")
+                loss = (per_sample_loss * weights).mean()
+                loss_dict["rabc_mean_weight"] = rabc_stats["mean_weight"]
+                loss_dict["rabc_zero_frac"] = rabc_stats["num_zero_weight"] / max(len(weights), 1)
+            else:
+                loss, loss_dict = policy.forward(batch)
 
         optimizer.zero_grad()
         loss.backward()
@@ -287,10 +309,15 @@ def main():
 
         if step % args.log_every == 0:
             elapsed = time.time() - t0
+            rabc_str = (
+                f" | rabc_w={loss_dict.get('rabc_mean_weight', 1.0):.2f}"
+                f" zero={loss_dict.get('rabc_zero_frac', 0.0):.0%}"
+                if rabc is not None else ""
+            )
             logger.info(
                 f"Step {step}/{args.steps} | loss={loss_val:.4f} | "
                 f"lr={scheduler.get_last_lr()[0]:.2e} | "
-                f"{step/elapsed:.1f} it/s"
+                f"{step/elapsed:.1f} it/s{rabc_str}"
             )
 
         if step % args.save_every == 0 or step == args.steps:
